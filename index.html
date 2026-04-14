@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<!-- =====================================================
+     カード管理アプリ（コメント付き学習版）
+     概要：病院カード・身分証・ポイントカードなどを
+           写真付きで管理するシングルページアプリ
+     保存先：IndexedDB（ブラウザ内DB、容量制限ほぼなし）
+====================================================== -->
+<html lang="ja">
+<head>
+<!-- 文字コードをUTF-8に設定（日本語を正しく表示するため） -->
+<meta charset="UTF-8">
+<!-- スマホ表示の設定。user-scalable=noでピンチズームを無効化してアプリっぽくする -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- iPhoneでホーム画面に追加したときフルスクリーンアプリとして動かす設定 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<!-- ステータスバー（時計・バッテリーのあたり）の色 -->
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>カード管理</title>
+<!-- ホーム画面アイコン（base64でPNG画像を直接埋め込み） -->
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAYAAAA9zQYyAAAEw0lEQVR4nO3dMWtUQRSG4S9iZWPK2BgRrAQhlZ2drX9BSGOvpBNEsAva2wT8C7Z2dlYBwUoQrWLpP9BCxtysRtfk3jnnfPM+nSDZ2Z13j3PvJmbj0uWr3wWYuBC9AGBOBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rBA0rF6MXMKe7zz9GL2F4bx7dCH38DYffsULI+USFXT7o1ZgPD/aCVoKd3f0Tf46IunTQ05gJOY9p2L2jLht0i5mQ82ph94y65F0Ozsy19NyvkkE3TOfcIvanXNBM55p67Vu5oBumcw2996ls0MCflPik8NrN29FLQBGpgyZk/K+0Qa/GfPTpvSQp9jsFkF3KoKcxt5DPY2d3/+jcXwSSpMODvSvRa/ibdEG3mAk5p/aaZg071V0Ozsw4r1RBN0zn/LK+vmmCZjpjDmmCbuaYzhhXuqDnkvWixUXW1zf0LgfHDMwtJOheIbcpkvUCpqKsk7npHvRqzN++fpEkbW5tL/aY2TcB8+ka9DTmFjIwp25Bt5gJGUvqcpeDiz/00vW2HdMZS1v8yBE9ne+/fPE0dAEdvHrw8En0GrLoNqEjpvMIMUvjPM912H5SONomj/Z8T2MbNMZkG/Ro58rRnu9pbIOWxtnkUZ7nOtL9CNbc2OyxWE9ojIegYYWgYcX+DH3/5Yt70WtY9erBw9fRa3BlPaEzxizlXZcD26CzR5N9fVXZBo0x2Qad/ZyafX1V2QYt5Y0m67oc2N/lIJ6xWE9ojIegYYWgYYWgYYWgYYWgYYWgYYWgYYWgYYWgYYWgYYWgYYWgYYWgYYWgYYWgYYWgYYWgYYWgYYWgYYWgYaVs0Du7+9FLwBp671O5oN8+vhW9BJzBm0c3ujxOuaCnmNK5RexPyaCZ0rX0ms6StHHp8tXvSz7Aur+0fnNrW5J09On92l/7zrPjv3t4sHeG1WEJ08ncM2apeNDSyaglwo60esToHbNkELT0e9SIFxGzZPKfNbYzNWHHiwq5sQi64WKxryvXf77enz+8C17JsZJ3OYDTpAu6veuRW9Z9ShP0vy4akVOm44aUKOiprO9+/JR5f1IFzZSuJdt0lhLe5fj29Ys2t7Z/TYGz3JfGMqaTOWPMUsKgpeOoJRF2AqtHjKwxS0mDlk5GLeU+t40kc8xS4qCl4zP1NGzEyB5ykzrohovFvtoAqRLxVKq7HMB5dQuaY0MN1fdp8aAr/rOFuvvW9chR/d3vzmF/ugRd9d0+qsr7tfhPrEy1n16RuHORyXQyV45Z6hy0dDJqibAjrR4xqscsBQQt/R414jnELAUF3RB2PJeQm9CggbnxSSGsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSsEDSs/ADnWB88Ew9w5gAAAABJRU5ErkJggg==">
+<!-- Googleフォント読み込み。Noto Sans JP（日本語）とDM Mono（等幅） -->
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* =====================================================
+     CSS変数（カスタムプロパティ）
+     :root に定義すると、ページ全体で --変数名 として使える。
+     色を一箇所で管理できるのでテーマ変更が楽になる。
+  ====================================================== */
+  :root {
+    --bg-deep:    #0a0f1e; /* 最も暗い背景色（ページ全体） */
+    --bg-card:    #111827; /* カード・モーダルの背景 */
+    --bg-input:   #1a2236; /* 入力欄の背景 */
+    --bg-hover:   #1e2d47; /* ホバー時の背景 */
+    --border:     #2a3a55; /* 枠線の色 */
+    --accent:     #4f9cf9; /* メインのアクセントカラー（青） */
+    --accent-dim: #1e3a6e; /* 薄いアクセントカラー */
+    --accent2:    #7dd3fc; /* サブのアクセントカラー */
+    --text:       #e8edf5; /* メインのテキスト色 */
+    --text-dim:   #8899b4; /* 薄いテキスト色（補足情報など） */
+    --success:    #34d399; /* 成功メッセージの緑 */
+    --danger:     #f87171; /* エラー・削除の赤 */
+    --tag-bg:     #1a2e4a; /* タグの背景色 */
+    --shadow:     0 4px 24px rgba(0,0,0,0.5); /* 影 */
+  }
+
+  /* 全要素に適用するリセット。
+     box-sizing: border-boxはpaddingとborderを幅に含める設定。
+     これがないと要素の幅計算がズレやすい。 */
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  /* ページ全体のスタイル */
+  body {
+    background: var(--bg-deep);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 15px;
+    min-height: 100vh;
+    padding-bottom: 80px; /* 下のタブバー分の余白 */
+  }
+
+  /* ヘッダー：position: sticky でスクロールしても上部に固定 */
+  header {
+    background: linear-gradient(180deg, #0d1528 0%, var(--bg-deep) 100%);
+    padding: 20px 20px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100; /* 他の要素より前面に表示する */
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(12px); /* 背景をぼかすガラス効果 */
+  }
+  header h1 { font-size: 20px; font-weight: 700; letter-spacing: 0.5px; }
+  header h1 span { color: var(--accent); }
+
+  /* ===== タブナビゲーション ===== */
+  /* 画面下部に固定表示されるタブバー */
+  .tab-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    display: flex;
+    z-index: 200;
+    /* iPhoneのホームバー分の余白をsafe-areaで自動調整 */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .tab-btn {
+    flex: 1; /* 均等に幅を分ける */
+    padding: 12px 0 8px;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 11px;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    transition: color 0.2s;
+  }
+  .tab-btn .tab-icon { font-size: 20px; }
+  /* activeクラスがついたタブをアクセントカラーに */
+  .tab-btn.active { color: var(--accent); }
+
+  /* ===== メインコンテンツ ===== */
+  main { padding: 16px; }
+
+  /* 各ビュー（タブの中身）はデフォルト非表示 */
+  .view { display: none; }
+  /* activeクラスがついたビューだけ表示 */
+  .view.active { display: block; }
+
+  /* ===== カード一覧 ===== */
+  .search-bar {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: 'Noto Sans JP', sans-serif;
+    outline: none;
+    margin-bottom: 12px;
+  }
+  .search-bar:focus { border-color: var(--accent); }
+
+  /* フィルターチップの横スクロールエリア */
+  .filter-row {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto; /* 横スクロール可能に */
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+    scrollbar-width: none; /* スクロールバーを非表示 */
+  }
+  .filter-row::-webkit-scrollbar { display: none; }
+  .filter-chip {
+    flex-shrink: 0; /* 縮まないように */
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color: var(--text-dim);
+    font-size: 12px;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .filter-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* カードグリッド：2列表示 */
+  .card-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* 2列 */
+    gap: 12px;
+  }
+  .card-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .card-item:active { transform: scale(0.97); border-color: var(--accent-dim); }
+
+  /* カードのサムネイル画像エリア（カード比率 1.58:1） */
+  .card-thumb {
+    width: 100%;
+    aspect-ratio: 1.58 / 1;
+    background: var(--bg-input);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .card-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .no-img { font-size: 28px; opacity: 0.4; }
+
+  .card-info { padding: 10px; }
+  .card-name { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+  .card-category {
+    font-size: 11px;
+    background: var(--tag-bg);
+    color: var(--accent2);
+    padding: 2px 8px;
+    border-radius: 6px;
+  }
+
+  /* カードがまだない時の空状態表示 */
+  .empty-state { display: none; text-align: center; padding: 60px 20px; color: var(--text-dim); }
+  .empty-state .emoji { font-size: 48px; margin-bottom: 16px; }
+  .empty-state p { font-size: 14px; line-height: 1.8; }
+
+  /* ===== 登録フォーム ===== */
+  .form-group { margin-bottom: 20px; }
+  .form-group label { display: block; font-size: 13px; color: var(--text-dim); margin-bottom: 8px; font-weight: 500; }
+  .form-group input[type="text"],
+  .form-group select {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 13px 16px;
+    color: var(--text);
+    font-size: 15px;
+    font-family: 'Noto Sans JP', sans-serif;
+    outline: none;
+    appearance: none; /* ブラウザデフォルトのスタイルを消す */
+    -webkit-appearance: none;
+  }
+  .form-group input[type="text"]:focus,
+  .form-group select:focus { border-color: var(--accent); }
+
+  /* 写真アップロードエリア（2列） */
+  .photo-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .photo-upload-box {
+    aspect-ratio: 1.58 / 1;
+    background: var(--bg-input);
+    border: 1.5px dashed var(--border);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .photo-upload-box:active { border-color: var(--accent); }
+  .upload-icon { font-size: 24px; margin-bottom: 6px; }
+  .upload-label { font-size: 11px; color: var(--text-dim); text-align: center; line-height: 1.5; }
+  /* 写真があるときのオーバーレイ（「変更」ボタン） */
+  .overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: none; align-items: center; justify-content: center;
+    font-size: 13px; color: #fff;
+  }
+  /* has-imageクラスがついた時にオーバーレイを表示 */
+  .photo-upload-box.has-image .overlay { display: flex; }
+  .photo-upload-box.has-image .upload-icon,
+  .photo-upload-box.has-image .upload-label { display: none; }
+  .photo-upload-box img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  /* input[type="file"]は非表示にしてJSからクリックする */
+  input[type="file"] { display: none; }
+
+  /* ===== カード詳細モーダル ===== */
+  /* モーダルの背景（画面全体を覆う半透明の黒） */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 250;
+    align-items: flex-end; /* 下から出てくる */
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--bg-card);
+    border-radius: 24px 24px 0 0;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .modal-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: 20px 20px 0; gap: 8px;
+  }
+  .modal-title { font-size: 17px; font-weight: 600; }
+  .modal-close {
+    background: var(--bg-input); border: none; color: var(--text-dim);
+    width: 32px; height: 32px; border-radius: 50%; font-size: 16px; cursor: pointer;
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  }
+  .modal-body { padding: 16px 20px 24px; }
+  .modal-category {
+    display: inline-flex; align-items: center;
+    font-size: 12px; background: var(--tag-bg); color: var(--accent2);
+    padding: 3px 10px; border-radius: 8px; margin-bottom: 16px;
+  }
+  .card-side-label { font-size: 12px; color: var(--text-dim); margin-bottom: 8px; font-weight: 500; }
+  .card-photo-view {
+    width: 100%; aspect-ratio: 1.58 / 1;
+    background: var(--bg-input); border-radius: 12px; margin-bottom: 16px;
+    overflow: hidden; position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .card-photo-view img { width: 100%; height: 100%; object-fit: cover; }
+  .tap-hint {
+    position: absolute; bottom: 8px; right: 10px;
+    font-size: 11px; color: rgba(255,255,255,0.6);
+    background: rgba(0,0,0,0.4); padding: 2px 8px; border-radius: 10px;
+  }
+  .no-photo-placeholder { color: var(--text-dim); text-align: center; font-size: 13px; }
+
+  /* ===== 全画面画像表示 ===== */
+  .fullscreen-overlay {
+    display: none; position: fixed; inset: 0;
+    background: #000; z-index: 300;
+    align-items: center; justify-content: center;
+  }
+  .fullscreen-overlay.open { display: flex; }
+  .fullscreen-overlay img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .fullscreen-close {
+    position: absolute; top: 20px; right: 20px;
+    background: rgba(255,255,255,0.15); border: none; color: #fff;
+    width: 40px; height: 40px; border-radius: 50%; font-size: 20px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ===== バックアップ画面 ===== */
+  .backup-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 14px; }
+  .backup-card h3 { font-size: 15px; margin-bottom: 6px; color: var(--text); }
+  .backup-card p { font-size: 13px; color: var(--text-dim); line-height: 1.6; margin-bottom: 14px; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  /* ===== カメラビューファインダー ===== */
+  .camera-overlay {
+    display: none; position: fixed; inset: 0;
+    z-index: 400; background: #000;
+    flex-direction: column; align-items: center; justify-content: center;
+  }
+  .camera-overlay.open { display: flex; }
+  /* video要素を画面全体に広げる */
+  #camera-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+  /* 水平ガイドライン（撮影時の目安） */
+  .camera-horizon {
+    position: absolute; left: 0; right: 0; top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    pointer-events: none; /* タッチを透過する（ボタン操作の邪魔をしない） */
+  }
+  .camera-horizon-line { width: 100%; height: 1px; background: rgba(79, 156, 249, 0.7); }
+  .camera-horizon-label {
+    text-align: center; font-size: 11px;
+    color: rgba(79, 156, 249, 0.9); margin-top: 4px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  }
+
+  /* カメラ画面のボタンエリア（画面下部固定） */
+  .camera-guide-btns {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    display: flex; gap: 12px; padding: 16px 20px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    background: linear-gradient(transparent, rgba(0,0,0,0.8));
+    z-index: 2;
+  }
+  .camera-guide-btns button {
+    flex: 1; padding: 14px; border-radius: 12px; border: none;
+    font-size: 14px; font-family: 'Noto Sans JP', sans-serif; cursor: pointer;
+  }
+  .btn-shoot { background: #fff; color: #000; font-weight: 700; }
+  .btn-camera-cancel { background: rgba(255,255,255,0.15); color: #fff; backdrop-filter: blur(4px); }
+
+  /* ===== トリミング画面 ===== */
+  .preview-overlay {
+    display: none; position: fixed; inset: 0;
+    z-index: 450; background: #000;
+    flex-direction: column; align-items: center; justify-content: center; padding: 16px;
+  }
+  .preview-overlay.open { display: flex; }
+  .preview-title { font-size: 14px; color: var(--text); margin-bottom: 12px; font-weight: 600; text-align: center; line-height: 1.5; position: relative; z-index: 2; }
+  .preview-title span { display: block; font-size: 11px; color: var(--text-dim); font-weight: 400; margin-top: 3px; }
+
+  /* 写真とトリミング枠のコンテナ */
+  .crop-container {
+    position: relative; width: 88vw; max-width: 400px;
+    touch-action: none; /* ブラウザのデフォルトタッチ操作を無効にしてドラッグを制御する */
+    user-select: none;  /* テキスト選択を無効にする */
+  }
+  .crop-container img { width: 100%; display: block; border-radius: 8px; pointer-events: none; }
+
+  /* ドラッグ可能なトリミング枠 */
+  .crop-box {
+    position: absolute;
+    border: 2.5px solid var(--accent);
+    border-radius: 10px;
+    /* box-shadowで枠の外側を暗くする（大きい値で画面全体を覆う） */
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.55);
+    cursor: move; touch-action: none;
+  }
+  /* 四隅のマーカー（CSS疑似要素::before と ::after で描画） */
+  .crop-box::before, .crop-box::after {
+    content: ''; position: absolute;
+    width: 24px; height: 24px; border-color: #fff; border-style: solid;
+  }
+  .crop-box::before { top: -2px; left: -2px; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+  .crop-box::after  { bottom: -2px; right: -2px; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+  .crop-corner-tr, .crop-corner-bl { position: absolute; width: 24px; height: 24px; border-color: #fff; border-style: solid; }
+  .crop-corner-tr { top: -2px; right: -2px; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
+  .crop-corner-bl { bottom: -2px; left: -2px; border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+
+  .preview-hint { font-size: 12px; color: var(--text-dim); margin-top: 12px; text-align: center; line-height: 1.6; }
+  /* トリミング画面のボタンも画面下部固定 */
+  .preview-btns {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    display: flex; gap: 12px; padding: 16px 20px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    background: linear-gradient(transparent, rgba(0,0,0,0.85)); z-index: 2;
+  }
+  .preview-btns button {
+    flex: 1; padding: 14px; border-radius: 12px; border: none;
+    font-size: 14px; font-family: 'Noto Sans JP', sans-serif; cursor: pointer;
+  }
+  .btn-preview-ok { background: var(--accent); color: #fff; font-weight: 600; }
+  .btn-preview-retry { background: rgba(255,255,255,0.12); color: #fff; }
+
+  /* ===== 共通ボタン ===== */
+  .btn {
+    width: 100%; padding: 15px; border-radius: 12px; border: none;
+    font-size: 15px; font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 500; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:active { opacity: 0.8; transform: scale(0.98); }
+  .btn-secondary { background: var(--bg-input); color: var(--text); border: 1px solid var(--border); }
+  .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+  .btn + .btn { margin-top: 10px; }
+
+  /* ===== トースト通知（画面下に一時表示されるメッセージ） ===== */
+  #toast {
+    position: fixed; bottom: 90px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--bg-card); border: 1px solid var(--border);
+    color: var(--text); padding: 12px 20px; border-radius: 20px;
+    font-size: 13px; opacity: 0; transition: all 0.3s; z-index: 999; white-space: nowrap;
+  }
+  /* showクラスで表示 */
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast.success { border-color: var(--success); color: var(--success); }
+  #toast.error { border-color: var(--danger); color: var(--danger); }
+</style>
+</head>
+<body>
+
+<!-- ===== ヘッダー ===== -->
+<header>
+  <h1>🗂 <span>カード</span>管理</h1>
+</header>
+
+<!-- ===== メインコンテンツ ===== -->
+<main>
+
+  <!-- ===== 一覧ビュー ===== -->
+  <!-- 最初から active クラスがついているので表示される -->
+  <div id="view-list" class="view active">
+    <!-- oninput：文字を入力するたびにrenderList()が呼ばれる -->
+    <input class="search-bar" type="text" id="search-input" placeholder="🔍 カード名で検索..." oninput="renderList()">
+    <!-- カテゴリフィルターチップ（JSで動的に生成される） -->
+    <div class="filter-row" id="filter-row"></div>
+    <!-- カードグリッド（JSで動的に生成される） -->
+    <div class="card-grid" id="card-grid"></div>
+  </div>
+
+  <!-- ===== 登録ビュー ===== -->
+  <div id="view-add" class="view">
+    <div class="form-group">
+      <label>カード名</label>
+      <input type="text" id="card-name" placeholder="例：〇〇病院、免許証">
+    </div>
+    <div class="form-group">
+      <label>カテゴリ</label>
+      <!-- onchange：選択が変わるたびにonCategoryChange()が呼ばれる -->
+      <select id="card-category" onchange="onCategoryChange()">
+        <option value="">選択してください</option>
+        <option value="病院">🏥 病院</option>
+        <option value="身分証">🪪 身分証</option>
+        <option value="買い物">🛒 買い物</option>
+        <option value="交通">🚃 交通</option>
+        <option value="金融">💳 金融</option>
+        <option value="クレカ">💰 クレカ</option>
+        <option value="その他">📁 その他</option>
+        <option value="__custom__">✏️ 自由入力...</option>
+      </select>
+    </div>
+    <!-- 「自由入力...」を選んだ時だけJSで表示される -->
+    <div class="form-group" id="custom-category-group" style="display:none">
+      <label>カテゴリ名を入力</label>
+      <input type="text" id="custom-category" placeholder="例：ポイント、会員証">
+    </div>
+
+    <div class="form-group">
+      <label>写真</label>
+      <div class="photo-row">
+        <!-- タップするとopenCameraGuide('front')が呼ばれてカメラが起動 -->
+        <div class="photo-upload-box" id="front-box" onclick="openCameraGuide('front')">
+          <span class="upload-icon">🃏</span>
+          <div class="upload-label">おもて面<br>タップして選択</div>
+          <div class="overlay"><span>✏️ 変更</span></div>
+        </div>
+        <div class="photo-upload-box" id="back-box" onclick="openCameraGuide('back')">
+          <span class="upload-icon">🔄</span>
+          <div class="upload-label">うら面<br>タップして選択</div>
+          <div class="overlay"><span>✏️ 変更</span></div>
+        </div>
+      </div>
+      <!-- 実際のファイル選択input（非表示、JSからクリックする） -->
+      <input type="file" id="front-file" accept="image/*" onchange="previewPhoto('front', this)">
+      <input type="file" id="back-file" accept="image/*" onchange="previewPhoto('back', this)">
+    </div>
+
+    <button class="btn btn-primary" onclick="saveCard()">💾 保存する</button>
+    <button class="btn btn-secondary" onclick="resetForm()">🔄 リセット</button>
+  </div>
+
+  <!-- ===== バックアップビュー ===== -->
+  <div id="view-backup" class="view">
+    <div class="backup-card">
+      <h3>📤 データをエクスポート</h3>
+      <p>カード情報と写真を全部まとめてJSONファイルに保存します。機種変のときに使ってね。</p>
+      <button class="btn btn-primary" onclick="exportData()">エクスポートする</button>
+    </div>
+    <div class="backup-card">
+      <h3>📥 データをインポート</h3>
+      <p>エクスポートしたJSONファイルを読み込みます。既存のカードとの重複は自動でスキップされます。</p>
+      <button class="btn btn-secondary" onclick="document.getElementById('import-file').click()">インポートする</button>
+      <input type="file" id="import-file" accept=".json" onchange="importData(this)" style="display:none">
+    </div>
+    <hr class="divider">
+    <div class="backup-card">
+      <h3>⚠️ 全データ削除</h3>
+      <p style="color:var(--danger)">このアプリのカードデータをすべて削除します。元に戻せません。</p>
+      <button class="btn btn-danger" onclick="clearAllData()">すべて削除する</button>
+    </div>
+  </div>
+
+</main>
+
+<!-- ===== タブバー（画面下部固定） ===== -->
+<nav class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('list', this)">
+    <span class="tab-icon">🗂</span>一覧
+  </button>
+  <button class="tab-btn" onclick="switchTab('add', this)">
+    <span class="tab-icon">➕</span>登録
+  </button>
+  <button class="tab-btn" onclick="switchTab('backup', this)">
+    <span class="tab-icon">☁️</span>バックアップ
+  </button>
+</nav>
+
+<!-- ===== カード詳細モーダル ===== -->
+<!-- onclick="closeModal(event)"：背景をタップしたときに閉じる -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div style="flex:1">
+        <!-- 通常表示（名前 + 編集ボタン） -->
+        <div id="modal-title-view">
+          <span class="modal-title" id="modal-title">-</span>
+          <button onclick="startEditName()" style="background:none;border:none;color:var(--text-dim);font-size:13px;cursor:pointer;margin-left:8px;">✏️ 名前変更</button>
+        </div>
+        <!-- 名前編集モード（最初は非表示） -->
+        <div id="modal-title-edit" style="display:none;gap:6px;align-items:center">
+          <input type="text" id="modal-name-input" style="flex:1;background:var(--bg-input);border:1px solid var(--accent);border-radius:8px;padding:6px 10px;color:var(--text);font-size:15px;font-family:'Noto Sans JP',sans-serif;outline:none;">
+          <button onclick="saveEditName()" style="background:var(--accent);border:none;color:#fff;padding:6px 12px;border-radius:8px;font-size:13px;cursor:pointer;">保存</button>
+          <button onclick="cancelEditName()" style="background:var(--bg-input);border:1px solid var(--border);color:var(--text-dim);padding:6px 10px;border-radius:8px;font-size:13px;cursor:pointer;">✕</button>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- カテゴリ表示 + 編集ボタン -->
+      <div class="modal-category" id="modal-category">-
+        <button onclick="startEditCategory()" style="background:none;border:none;color:var(--accent2);font-size:12px;cursor:pointer;margin-left:6px;">✏️</button>
+      </div>
+      <!-- カテゴリ編集モード（最初は非表示） -->
+      <div id="modal-category-edit" style="display:none;margin-bottom:12px;">
+        <select id="modal-category-select" style="width:100%;background:var(--bg-input);border:1px solid var(--accent);border-radius:8px;padding:8px 12px;color:var(--text);font-size:14px;font-family:'Noto Sans JP',sans-serif;outline:none;margin-bottom:8px;">
+          <option value="病院">🏥 病院</option>
+          <option value="身分証">🪪 身分証</option>
+          <option value="買い物">🛒 買い物</option>
+          <option value="交通">🚃 交通</option>
+          <option value="金融">💳 金融</option>
+          <option value="クレカ">💰 クレカ</option>
+          <option value="その他">📁 その他</option>
+          <option value="__custom__">✏️ 自由入力...</option>
+        </select>
+        <input type="text" id="modal-category-custom" placeholder="カテゴリ名を入力" style="display:none;width:100%;background:var(--bg-input);border:1px solid var(--accent);border-radius:8px;padding:8px 12px;color:var(--text);font-size:14px;font-family:'Noto Sans JP',sans-serif;outline:none;margin-bottom:8px;">
+        <div style="display:flex;gap:8px;">
+          <button onclick="saveEditCategory()" style="flex:1;background:var(--accent);border:none;color:#fff;padding:8px;border-radius:8px;font-size:13px;cursor:pointer;">保存</button>
+          <button onclick="cancelEditCategory()" style="flex:1;background:var(--bg-input);border:1px solid var(--border);color:var(--text-dim);padding:8px;border-radius:8px;font-size:13px;cursor:pointer;">キャンセル</button>
+        </div>
+      </div>
+
+      <div class="card-side-label">おもて面</div>
+      <div class="card-photo-view" id="modal-front-wrap" onclick="openFullscreen('front')">
+        <div class="no-photo-placeholder" id="modal-front-empty">📷 写真なし</div>
+        <span class="tap-hint" id="modal-front-hint" style="display:none">タップで拡大</span>
+      </div>
+
+      <div class="card-side-label">うら面</div>
+      <div class="card-photo-view" id="modal-back-wrap" onclick="openFullscreen('back')">
+        <div class="no-photo-placeholder" id="modal-back-empty">📷 写真なし</div>
+        <span class="tap-hint" id="modal-back-hint" style="display:none">タップで拡大</span>
+      </div>
+
+      <button class="btn btn-danger" onclick="deleteCard()">🗑 このカードを削除</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 全画面表示 ===== -->
+<div class="fullscreen-overlay" id="fullscreen" onclick="closeFullscreen()">
+  <img id="fullscreen-img" src="" alt="">
+  <button class="fullscreen-close">✕</button>
+</div>
+
+<!-- ===== カメラビューファインダー ===== -->
+<div class="camera-overlay" id="camera-overlay">
+  <!-- video要素にカメラ映像を流す。playsinline はiOSで必須（ないと全画面になる） -->
+  <video id="camera-video" autoplay playsinline muted></video>
+  <!-- 水平ガイドライン：撮影時の目安になる線 -->
+  <div class="camera-horizon">
+    <div class="camera-horizon-line"></div>
+    <div class="camera-horizon-label">── 水平ライン ──</div>
+  </div>
+  <div class="camera-guide-btns">
+    <button class="btn-camera-cancel" onclick="closeCameraGuide()">キャンセル</button>
+    <button class="btn-shoot" onclick="shootPhoto()">📸 撮影</button>
+  </div>
+</div>
+
+<!-- ===== トリミング画面 ===== -->
+<div class="preview-overlay" id="preview-overlay">
+  <div class="preview-title">
+    ✂️ 枠をドラッグして位置を合わせてね
+    <span>カードの比率で切り取られます</span>
+  </div>
+  <div class="crop-container" id="crop-container">
+    <img id="preview-img" src="" alt="プレビュー">
+    <div class="crop-box" id="crop-box">
+      <div class="crop-corner-tr"></div>
+      <div class="crop-corner-bl"></div>
+    </div>
+  </div>
+  <div class="preview-hint">ドラッグで移動・画面全体でピンチして拡大縮小</div>
+  <div class="preview-btns">
+    <button class="btn-preview-retry" onclick="retryPhoto()">🔄 撮り直す</button>
+    <button class="btn-preview-ok" onclick="confirmPhoto()">✅ これで切り取る！</button>
+  </div>
+</div>
+
+<!-- 撮影した画像を加工するための隠しcanvas（画面に表示されない） -->
+<canvas id="camera-canvas" style="display:none"></canvas>
+
+<!-- トースト通知 -->
+<div id="toast"></div>
+
+<script>
+// =====================================================
+//  IndexedDB の設定
+//  localStorageは約5MBしか保存できないが、
+//  IndexedDBは数百MB〜ほぼ無制限に保存できる。
+//  写真データを大量に保存するアプリに最適。
+// =====================================================
+const DB_NAME = 'cardVaultDB';  // データベース名
+const DB_VERSION = 1;           // バージョン番号（構造を変えるときに上げる）
+const STORE_NAME = 'cards';     // オブジェクトストア名（RDBのテーブルに相当）
+let db = null;                  // DB接続を保持する変数
+
+// DBを開く関数。Promiseを返すので await で待てる。
+function openDB() {
+  return new Promise((resolve, reject) => {
+    if (db) { resolve(db); return; } // すでに開いていれば再利用
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    // DBが存在しない or バージョンが上がったときに実行される
+    req.onupgradeneeded = (e) => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains(STORE_NAME)) {
+        // idをキーにしたオブジェクトストア（テーブル）を作成
+        d.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = (e) => { db = e.target.result; resolve(db); };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+// 全カードを取得（async/await で非同期処理を同期っぽく書ける）
+async function loadCards() {
+  const d = await openDB();
+  return new Promise((resolve) => {
+    const tx = d.transaction(STORE_NAME, 'readonly');
+    const req = tx.objectStore(STORE_NAME).getAll(); // 全件取得
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => resolve([]);
+  });
+}
+
+// カードを全件保存（全削除してから再挿入）
+async function saveCards(cards) {
+  const d = await openDB();
+  return new Promise((resolve) => {
+    const tx = d.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    store.clear(); // 既存データを全削除
+    cards.forEach(card => store.put(card)); // 新しいデータを挿入
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => resolve();
+  });
+}
+
+// 特定のIDのカードを1件だけ削除
+async function deleteCardFromDB(id) {
+  const d = await openDB();
+  return new Promise((resolve) => {
+    const tx = d.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).delete(id);
+    tx.oncomplete = resolve;
+  });
+}
+
+// 全データをクリア
+async function clearAllDB() {
+  const d = await openDB();
+  return new Promise((resolve) => {
+    const tx = d.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).clear();
+    tx.oncomplete = resolve;
+  });
+}
+
+// =====================================================
+//  タブ切り替え
+// =====================================================
+function switchTab(tab, el) {
+  // 全ビューを非表示にして選択したビューだけ表示
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + tab).classList.add('active');
+  el.classList.add('active');
+  if (tab === 'list') renderList();
+  if (tab === 'add') updateCategorySelect(); // 登録タブを開くときにカテゴリ一覧を更新
+}
+
+// 固定カテゴリ一覧
+const DEFAULT_CATEGORIES = ['病院', '身分証', '買い物', '交通', '金融', 'クレカ', 'その他'];
+
+// 登録フォームのカテゴリselectに、過去に作ったカスタムカテゴリを追加する
+async function updateCategorySelect() {
+  const cards = await loadCards();
+  const sel = document.getElementById('card-category');
+
+  // 既存のカスタムカテゴリ（固定リストにないもの）を取得
+  const customCats = [...new Set(cards.map(c => c.category))]
+    .filter(cat => !DEFAULT_CATEGORIES.includes(cat));
+
+  // 既存のカスタムオプションを削除（自由入力の直前まで）
+  Array.from(sel.options).forEach(opt => {
+    if (!DEFAULT_CATEGORIES.includes(opt.value) && opt.value !== '' && opt.value !== '__custom__') {
+      sel.removeChild(opt);
+    }
+  });
+
+  // カスタムカテゴリをselectに追加（自由入力の前に挿入）
+  const customOption = sel.querySelector('option[value="__custom__"]');
+  customCats.forEach(cat => {
+    const opt = document.createElement('option');
+    opt.value = cat;
+    opt.textContent = '📌 ' + cat;
+    sel.insertBefore(opt, customOption);
+  });
+}
+
+// =====================================================
+//  カテゴリ選択（登録フォーム用）
+// =====================================================
+function onCategoryChange() {
+  const sel = document.getElementById('card-category').value;
+  // 「自由入力...」を選んだ時だけ入力欄を表示
+  document.getElementById('custom-category-group').style.display =
+    sel === '__custom__' ? 'block' : 'none';
+}
+
+// カテゴリの最終的な値を取得する
+function getSelectedCategory() {
+  const sel = document.getElementById('card-category').value;
+  // 自由入力の場合はテキストボックスの値を使う
+  if (sel === '__custom__') return document.getElementById('custom-category').value.trim();
+  return sel;
+}
+
+// =====================================================
+//  画像圧縮
+//  写真をそのまま保存すると数MBになるので、
+//  最大800px・JPEG品質60%に圧縮して容量を節約する。
+// =====================================================
+function compressImage(dataURL, callback) {
+  const img = new Image();
+  img.onload = () => {
+    const MAX = 800; // 長辺の最大サイズ（px）
+    let w = img.width, h = img.height;
+    // どちらかの辺がMAXを超えていたらアスペクト比を保って縮小
+    if (w > MAX || h > MAX) {
+      if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+      else { w = Math.round(w * MAX / h); h = MAX; }
+    }
+    // canvasに描画してJPEG形式で取り出す（第2引数が品質、0〜1）
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    callback(canvas.toDataURL('image/jpeg', 0.6));
+  };
+  img.src = dataURL;
+}
+
+// =====================================================
+//  写真プレビュー（ギャラリーから選択した場合）
+// =====================================================
+// 一時的に写真データを保持するオブジェクト（保存ボタンを押すまでの仮置き場）
+let photoData = { front: null, back: null };
+
+function previewPhoto(side, input) {
+  const file = input.files[0]; // 選択されたファイルを取得
+  if (!file) return;
+  const reader = new FileReader(); // ファイルをJSで読み込むAPI
+  reader.onload = (e) => {
+    // readAsDataURL完了後、圧縮してプレビュー表示
+    compressImage(e.target.result, (compressed) => {
+      photoData[side] = compressed; // 仮保存
+      const box = document.getElementById(side + '-box');
+      const existing = box.querySelector('img');
+      if (existing) existing.remove(); // 既存の画像を削除
+      const img = document.createElement('img');
+      img.src = compressed;
+      box.insertBefore(img, box.firstChild);
+      box.classList.add('has-image'); // CSSでオーバーレイを表示
+    });
+  };
+  reader.readAsDataURL(file); // ファイルをBase64 DataURLとして読み込む
+}
+
+// =====================================================
+//  カード保存
+// =====================================================
+async function saveCard() {
+  const name = document.getElementById('card-name').value.trim();
+  const category = getSelectedCategory();
+
+  // バリデーション（入力チェック）
+  if (!name) { showToast('カード名を入力してください', 'error'); return; }
+  if (!category) { showToast('カテゴリを選択してください', 'error'); return; }
+
+  const cards = await loadCards();
+  const card = {
+    id: crypto.randomUUID(), // ユニークID（UUID v4、衝突しない）
+    name,
+    category,
+    front: photoData.front, // Base64形式の画像データ
+    back: photoData.back,
+    createdAt: new Date().toISOString() // ISO形式の日時文字列
+  };
+  cards.push(card);
+  await saveCards(cards);
+  showToast('「' + name + '」を登録しました ✅', 'success');
+  resetForm(); // フォームを初期状態に戻す
+}
+
+// フォームをリセット（全項目を初期状態に戻す）
+function resetForm() {
+  document.getElementById('card-name').value = '';
+  document.getElementById('card-category').value = '';
+  document.getElementById('custom-category').value = '';
+  document.getElementById('custom-category-group').style.display = 'none';
+  photoData = { front: null, back: null }; // 仮保存データもクリア
+  ['front', 'back'].forEach(side => {
+    const box = document.getElementById(side + '-box');
+    const img = box.querySelector('img');
+    if (img) img.remove();
+    box.classList.remove('has-image');
+  });
+  document.getElementById('front-file').value = '';
+  document.getElementById('back-file').value = '';
+}
+
+// =====================================================
+//  一覧表示
+// =====================================================
+let currentFilter = 'all'; // 現在選択中のフィルター
+
+function setFilter(el) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  // dataset.catはHTML属性から取得するので自動的にデコードされる
+  currentFilter = el.dataset.cat;
+  renderList();
+}
+
+async function renderList() {
+  const cards = await loadCards();
+  const searchEl = document.getElementById('search-input');
+  const query = searchEl ? searchEl.value.toLowerCase() : '';
+
+  // カテゴリの一覧を重複なしで作成
+  // Setは重複を自動排除するデータ構造。スプレッド構文...で配列に展開
+  const cats = ['all', ...new Set(cards.map(c => c.category))];
+  const filterRow = document.getElementById('filter-row');
+  // テンプレートリテラル（バッククォート）でHTMLを動的に生成
+  filterRow.innerHTML = cats.map(cat => {
+    const label = cat === 'all' ? 'すべて' : cat;
+    const active = currentFilter === cat ? ' active' : '';
+    return `<button class="filter-chip${active}" data-cat="${escapeHtml(cat)}" onclick="setFilter(this)">${escapeHtml(label)}</button>`;
+  }).join(''); // 配列を結合して一つの文字列に
+
+  // フィルターと検索を適用
+  let filtered = cards;
+  if (currentFilter !== 'all') filtered = filtered.filter(c => c.category === currentFilter);
+  if (query) filtered = filtered.filter(c => c.name.toLowerCase().includes(query));
+
+  const grid = document.getElementById('card-grid');
+  if (filtered.length === 0) {
+    grid.innerHTML = '';
+    const empty = document.querySelector('.empty-state') || createEmpty();
+    empty.style.display = 'block';
+    return;
+  }
+
+  const empty = document.querySelector('.empty-state');
+  if (empty) empty.style.display = 'none';
+
+  // カードグリッドのHTMLを動的に生成
+  grid.innerHTML = filtered.map(card => `
+    <div class="card-item" data-id="${card.id}" onclick="openCard(this.dataset.id)">
+      <div class="card-thumb">
+        ${card.front
+          ? `<img src="${card.front}" alt="${card.name}">`
+          : `<div class="no-img">🃏</div>`}
+      </div>
+      <div class="card-info">
+        <div class="card-name">${escapeHtml(card.name)}</div>
+        <span class="card-category">${escapeHtml(card.category)}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// 空状態の要素を作成してDOMに追加する
+function createEmpty() {
+  const el = document.createElement('div');
+  el.className = 'empty-state';
+  el.innerHTML = `<div class="emoji">🗂</div><p>まだカードがありません。<br>「＋ 登録」から追加してみてください。</p>`;
+  document.getElementById('view-list').appendChild(el);
+  return el;
+}
+
+// =====================================================
+//  カード詳細モーダル
+// =====================================================
+let currentCardId = null; // 現在開いているカードのID
+
+async function openCard(id) {
+  const cards = await loadCards();
+  const card = cards.find(c => c.id === id); // Array.findでIDが一致するカードを探す
+  if (!card) return;
+  currentCardId = id;
+
+  // モーダルの内容を更新
+  document.getElementById('modal-title').textContent = card.name;
+  document.getElementById('modal-category').childNodes[0].textContent = card.category + ' ';
+
+  // おもて面の写真を表示・非表示
+  const frontWrap = document.getElementById('modal-front-wrap');
+  document.getElementById('modal-front-empty').style.display = card.front ? 'none' : 'block';
+  document.getElementById('modal-front-hint').style.display = card.front ? 'block' : 'none';
+  let fImg = frontWrap.querySelector('img');
+  if (card.front) {
+    // img要素がなければ作成してから追加
+    if (!fImg) { fImg = document.createElement('img'); frontWrap.appendChild(fImg); }
+    fImg.src = card.front;
+    fImg.style.display = 'block';
+  } else if (fImg) fImg.style.display = 'none';
+
+  // うら面の写真を表示・非表示
+  const backWrap = document.getElementById('modal-back-wrap');
+  document.getElementById('modal-back-empty').style.display = card.back ? 'none' : 'block';
+  document.getElementById('modal-back-hint').style.display = card.back ? 'block' : 'none';
+  let bImg = backWrap.querySelector('img');
+  if (card.back) {
+    if (!bImg) { bImg = document.createElement('img'); backWrap.appendChild(bImg); }
+    bImg.src = card.back;
+    bImg.style.display = 'block';
+  } else if (bImg) bImg.style.display = 'none';
+
+  document.getElementById('modal').classList.add('open');
+}
+
+// ===== 名前編集 =====
+function startEditName() {
+  const current = document.getElementById('modal-title').textContent;
+  document.getElementById('modal-name-input').value = current;
+  // 通常表示を隠して編集モードを表示
+  document.getElementById('modal-title-view').style.display = 'none';
+  document.getElementById('modal-title-edit').style.display = 'flex';
+  document.getElementById('modal-name-input').focus();
+}
+
+async function saveEditName() {
+  const newName = document.getElementById('modal-name-input').value.trim();
+  if (!newName) { showToast('カード名を入力してください', 'error'); return; }
+  const cards = await loadCards();
+  const card = cards.find(c => c.id === currentCardId);
+  if (card) {
+    card.name = newName;
+    await saveCards(cards);
+    document.getElementById('modal-title').textContent = newName;
+    showToast('名前を変更しました ✅', 'success');
+    renderList(); // 一覧も更新
+  }
+  cancelEditName();
+}
+
+function cancelEditName() {
+  document.getElementById('modal-title-view').style.display = 'block';
+  document.getElementById('modal-title-edit').style.display = 'none';
+}
+
+// ===== カテゴリ編集 =====
+function startEditCategory() {
+  const current = document.getElementById('modal-category').childNodes[0].textContent.trim();
+  const sel = document.getElementById('modal-category-select');
+  // 既存のカテゴリがリストにあれば選択、なければ自由入力欄に入力
+  const exists = Array.from(sel.options).some(o => o.value === current);
+  if (exists) {
+    sel.value = current;
+  } else {
+    sel.value = '__custom__';
+    const customInput = document.getElementById('modal-category-custom');
+    customInput.style.display = 'block';
+    customInput.value = current;
+  }
+  document.getElementById('modal-category').style.display = 'none';
+  document.getElementById('modal-category-edit').style.display = 'block';
+
+  // selectの変更時に自由入力欄の表示を切り替え
+  sel.onchange = () => {
+    document.getElementById('modal-category-custom').style.display =
+      sel.value === '__custom__' ? 'block' : 'none';
+  };
+}
+
+async function saveEditCategory() {
+  const sel = document.getElementById('modal-category-select');
+  // 三項演算子：条件 ? 真の値 : 偽の値
+  let newCat = sel.value === '__custom__'
+    ? document.getElementById('modal-category-custom').value.trim()
+    : sel.value;
+  if (!newCat) { showToast('カテゴリを入力してください', 'error'); return; }
+  const cards = await loadCards();
+  const card = cards.find(c => c.id === currentCardId);
+  if (card) {
+    card.category = newCat;
+    await saveCards(cards);
+    document.getElementById('modal-category').childNodes[0].textContent = newCat + ' ';
+    showToast('カテゴリを変更しました ✅', 'success');
+    renderList();
+  }
+  cancelEditCategory();
+}
+
+function cancelEditCategory() {
+  document.getElementById('modal-category').style.display = '';
+  document.getElementById('modal-category-edit').style.display = 'none';
+  document.getElementById('modal-category-custom').style.display = 'none';
+}
+
+// モーダルを閉じる（背景タップ時）
+// event.targetがモーダル本体（背景部分）の場合のみ閉じる
+function closeModal(e) {
+  if (e.target === document.getElementById('modal')) closeModalDirect();
+}
+// モーダルを閉じる（✕ボタン時）
+function closeModalDirect() {
+  document.getElementById('modal').classList.remove('open');
+  cancelEditName();
+  cancelEditCategory();
+  currentCardId = null;
+}
+
+// カードを削除
+async function deleteCard() {
+  if (!currentCardId) return;
+  // confirmダイアログで確認
+  if (!confirm('このカードを削除しますか？')) return;
+  await deleteCardFromDB(currentCardId);
+  closeModalDirect();
+  renderList();
+  showToast('カードを削除しました', 'error');
+}
+
+// =====================================================
+//  全画面表示
+// =====================================================
+async function openFullscreen(side) {
+  const cards = await loadCards();
+  const card = cards.find(c => c.id === currentCardId);
+  if (!card || !card[side]) return;
+  document.getElementById('fullscreen-img').src = card[side];
+  document.getElementById('fullscreen').classList.add('open');
+}
+function closeFullscreen() {
+  document.getElementById('fullscreen').classList.remove('open');
+}
+
+// =====================================================
+//  カメラ機能
+// =====================================================
+let cameraTargetSide = null; // どちら面を撮影中か（'front' or 'back'）
+let cameraStream = null;     // カメラのメディアストリームを保持
+
+async function openCameraGuide(side) {
+  cameraTargetSide = side;
+  document.getElementById('camera-overlay').classList.add('open');
+
+  try {
+    // getUserMedia でカメラにアクセスする
+    // facingMode: 'environment' = 背面カメラ（カードを撮るなら背面が便利）
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
+    });
+    cameraStream = stream;
+    const video = document.getElementById('camera-video');
+    video.srcObject = stream; // videoタグに映像を流す
+  } catch (e) {
+    // カメラの許可が得られない場合はギャラリー選択にフォールバック
+    closeCameraGuide();
+    showToast('カメラを使用できません。ギャラリーから選択します', '');
+    setTimeout(() => { document.getElementById(side + '-file').click(); }, 500);
+  }
+}
+
+// カメラを閉じる（ストリームも停止してカメラランプを消す）
+function closeCameraGuide() {
+  document.getElementById('camera-overlay').classList.remove('open');
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(t => t.stop()); // カメラを停止
+    cameraStream = null;
+  }
+  cameraTargetSide = null;
+}
+
+// 撮影ボタンを押したとき
+function shootPhoto() {
+  const video = document.getElementById('camera-video');
+  const canvas = document.getElementById('camera-canvas');
+  // canvasにvideoの現在フレームを描画してキャプチャ
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const dataURL = canvas.toDataURL('image/jpeg', 0.9);
+
+  // カメラ非表示 → トリミング画面へ
+  document.getElementById('camera-overlay').classList.remove('open');
+  const img = document.getElementById('preview-img');
+  compressImage(dataURL, (compressed) => {
+    img.src = compressed;
+    img.onload = () => initCropBox(); // 画像読み込み後にトリミング枠を初期化
+    window._tempPhotoData = compressed; // 仮保存
+  });
+  document.getElementById('preview-overlay').classList.add('open');
+}
+
+// =====================================================
+//  トリミング枠の初期化
+//  1本指でドラッグ移動、2本指でピンチ拡大縮小に対応
+// =====================================================
+function initCropBox() {
+  const container = document.getElementById('crop-container');
+  const box = document.getElementById('crop-box');
+  const img = document.getElementById('preview-img');
+  const cw = container.offsetWidth;  // コンテナの表示幅
+  const ch = img.offsetHeight;       // 画像の表示高さ
+
+  // カード比率（1.58:1）で枠の初期サイズを計算
+  const ratio = 1.58;
+  let boxW = cw * 0.88;
+  let boxH = boxW / ratio;
+  if (boxH > ch * 0.88) { boxH = ch * 0.88; boxW = boxH * ratio; }
+
+  // 枠の位置（コンテナ左上からの距離）
+  let boxX = (cw - boxW) / 2;
+  let boxY = (ch - boxH) / 2;
+
+  // CSSに反映する関数
+  function applyBox() {
+    box.style.left = boxX + 'px';
+    box.style.top = boxY + 'px';
+    box.style.width = boxW + 'px';
+    box.style.height = boxH + 'px';
+  }
+  applyBox();
+
+  // タッチ状態を管理する変数
+  let dragging = false, startX, startY, startBX, startBY;
+  let pinching = false, startDist, startW;
+
+  // 2本の指の間の距離を計算（ピンチ検出用）
+  function getDist(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy); // 三平方の定理
+  }
+
+  // タッチ開始
+  function onStart(e) {
+    if (e.touches && e.touches.length === 2) {
+      // 2本指 → ピンチモード
+      pinching = true; dragging = false;
+      startDist = getDist(e.touches);
+      startW = boxW; // 開始時の枠幅を記憶
+    } else {
+      // 1本指 → ドラッグモード
+      pinching = false; dragging = true;
+      const p = e.touches ? e.touches[0] : e;
+      startX = p.clientX; startY = p.clientY;
+      startBX = boxX; startBY = boxY; // 開始時の枠位置を記憶
+    }
+    e.preventDefault(); // ブラウザのデフォルト動作（スクロールなど）を止める
+  }
+
+  // タッチ移動
+  function onMove(e) {
+    if (e.touches && e.touches.length === 2 && pinching) {
+      // ピンチ：距離の変化率でスケールを計算
+      const dist = getDist(e.touches);
+      const scale = dist / startDist; // 現在距離 / 開始距離
+      boxW = Math.max(60, Math.min(cw, startW * scale));
+      boxH = boxW / ratio; // カード比率を固定
+      // はみ出し防止（Math.maxとMath.minで範囲を制限）
+      boxX = Math.max(0, Math.min(cw - boxW, boxX));
+      boxY = Math.max(0, Math.min(ch - boxH, boxY));
+      applyBox();
+    } else if (dragging && !pinching) {
+      // ドラッグ：開始位置からの差分を加算
+      const p = e.touches ? e.touches[0] : e;
+      const dx = p.clientX - startX;
+      const dy = p.clientY - startY;
+      boxX = Math.max(0, Math.min(cw - boxW, startBX + dx));
+      boxY = Math.max(0, Math.min(ch - boxH, startBY + dy));
+      applyBox();
+    }
+    e.preventDefault();
+  }
+
+  // タッチ終了
+  function onEnd(e) {
+    if (e.touches && e.touches.length < 2) pinching = false;
+    if (!e.touches || e.touches.length === 0) { dragging = false; pinching = false; }
+  }
+
+  // 既存のイベントリスナーを削除してから再登録（二重登録防止）
+  box.removeEventListener('touchstart', box._ts);
+  box.removeEventListener('touchmove', box._tm);
+  box.removeEventListener('touchend', box._te);
+  box.removeEventListener('mousedown', box._md);
+  // windowへの累積登録も防止
+  window.removeEventListener('mousemove', box._wm);
+  window.removeEventListener('mouseup', box._wu);
+
+  box._ts = onStart; box._tm = onMove; box._te = onEnd; box._md = onStart;
+  box._wm = onMove; box._wu = onEnd;
+  box.addEventListener('touchstart', onStart, { passive: false });
+  box.addEventListener('touchmove', onMove, { passive: false });
+  box.addEventListener('touchend', onEnd);
+  box.addEventListener('mousedown', onStart);
+
+  // コンテナ全体でもピンチを受け付ける（枠が小さくて指が乗りにくい場合対策）
+  container.addEventListener('touchstart', (e) => { if (e.touches.length === 2) onStart(e); }, { passive: false });
+  container.addEventListener('touchmove', (e) => { if (e.touches.length === 2) onMove(e); }, { passive: false });
+  container.addEventListener('touchend', onEnd);
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onEnd);
+
+  // 確定時に枠の位置・サイズ情報を取得する関数を保存
+  window._cropInfo = () => ({
+    x: boxX, y: boxY, w: boxW, h: boxH,
+    dispW: cw, dispH: ch
+  });
+}
+
+// 「これで切り取る！」を押したとき
+function confirmPhoto() {
+  const dataURL = window._tempPhotoData;
+  if (!dataURL || !cameraTargetSide) return;
+
+  const info = window._cropInfo();
+  const img = new Image();
+  img.onload = () => {
+    // 表示サイズ → 実際の画像サイズに変換
+    // （例：表示幅300pxでも実際の画像は1200pxかもしれないから比率で変換）
+    const scaleX = img.naturalWidth / info.dispW;
+    const scaleY = img.naturalHeight / info.dispH;
+    const canvas = document.getElementById('camera-canvas');
+    canvas.width = info.w * scaleX;
+    canvas.height = info.h * scaleY;
+    const ctx = canvas.getContext('2d');
+    // 枠の位置でクロップして描画
+    ctx.drawImage(img,
+      info.x * scaleX, info.y * scaleY, canvas.width, canvas.height, // 元画像の切り取り範囲
+      0, 0, canvas.width, canvas.height // canvasに描画する範囲
+    );
+    const croppedURL = canvas.toDataURL('image/jpeg', 0.85);
+
+    // さらに圧縮してから保存
+    compressImage(croppedURL, (compressed) => {
+      photoData[cameraTargetSide] = compressed;
+      const box = document.getElementById(cameraTargetSide + '-box');
+      const existing = box.querySelector('img');
+      if (existing) existing.remove();
+      const newImg = document.createElement('img');
+      newImg.src = compressed;
+      box.insertBefore(newImg, box.firstChild);
+      box.classList.add('has-image');
+
+      document.getElementById('preview-overlay').classList.remove('open');
+      if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+      cameraTargetSide = null;
+      window._tempPhotoData = null;
+      showToast('写真を保存しました ✅', 'success');
+    });
+  };
+  img.src = dataURL;
+}
+
+// 「撮り直す」を押したとき
+function retryPhoto() {
+  window._tempPhotoData = null;
+  document.getElementById('preview-overlay').classList.remove('open');
+  document.getElementById('camera-overlay').classList.add('open');
+}
+
+// =====================================================
+//  バックアップ（エクスポート・インポート）
+// =====================================================
+
+// エクスポート：写真データも含めてJSONファイルに書き出す
+async function exportData() {
+  const cards = await loadCards();
+  // JSON.stringify でJavaScriptオブジェクトをJSON文字列に変換
+  // 第3引数の2はインデント（読みやすくするため）
+  const json = JSON.stringify({ version: 2, exportedAt: new Date().toISOString(), cards }, null, 2);
+  // Blobオブジェクトを作ってダウンロード用URLを生成
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'card-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click(); // クリックでダウンロード開始
+  URL.revokeObjectURL(url); // メモリ解放
+  showToast('エクスポートしました 📥', 'success');
+}
+
+// インポート：JSONファイルを読み込んでカードを追加
+async function importData(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      // JSON.parse でJSON文字列をJavaScriptオブジェクトに変換
+      const data = JSON.parse(e.target.result);
+      if (!data.cards || !Array.isArray(data.cards)) throw new Error('不正なファイル');
+      const existing = await loadCards();
+      // Setで既存IDを管理して重複をはじく
+      const existingIds = new Set(existing.map(c => c.id));
+      const newCards = data.cards.filter(c => !existingIds.has(c.id));
+      await saveCards([...existing, ...newCards]); // スプレッド構文で配列を結合
+      showToast(`${newCards.length}件のカードを追加しました ✅`, 'success');
+      renderList();
+    } catch {
+      showToast('ファイルの読み込みに失敗しました', 'error');
+    }
+  };
+  reader.readAsText(file);
+  input.value = ''; // 同じファイルを再選択できるようにリセット
+}
+
+// 全データ削除
+async function clearAllData() {
+  if (!confirm('⚠️ すべてのカードデータを削除します。この操作は元に戻せません。本当によろしいですか？')) return;
+  await clearAllDB();
+  showToast('すべてのデータを削除しました', 'error');
+  renderList();
+}
+
+// =====================================================
+//  ユーティリティ関数
+// =====================================================
+
+// トースト通知を表示する（3秒後に自動で消える）
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  clearTimeout(t._timer); // 前のタイマーをキャンセル
+  t._timer = setTimeout(() => { t.className = ''; }, 3000);
+}
+
+// XSS攻撃対策：HTML特殊文字をエスケープする
+// innerHTMLにユーザー入力をそのまま入れると危険（スクリプトが実行される）
+// <や&などをHTMLエンティティに変換して安全にする
+function escapeHtml(s) {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;'); // シングルクォートもエスケープ（XSS対策の完全版）
+}
+
+// =====================================================
+//  初期化
+//  ページが読み込まれたら一覧を表示する
+// =====================================================
+renderList();
+</script>
+</body>
+</html>
